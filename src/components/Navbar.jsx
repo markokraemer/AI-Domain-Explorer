@@ -10,7 +10,7 @@ export default function Navbar() {
         <div className="flex w-full items-center gap-8">
           <div className="flex items-center gap-2">
               <CompassIcon className="h-6 w-6 text-blue-400" />
-              <span className="font-bold text-2xl">Explorer.Domains</span>
+              <span className="font-bold text-2xl text-gray-900">Seeking.Domains</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-4" data-testid="header-right">
             <DomainAvailabilityCheck />

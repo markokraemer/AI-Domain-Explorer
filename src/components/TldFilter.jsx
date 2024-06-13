@@ -39,7 +39,7 @@ export function TldFilter({ selectedTlds, setSelectedTlds }) {
               <CommandEmpty>No TLD found.</CommandEmpty>
               <CommandGroup>
                 {tlds.map((tld) => (
-                  <CommandItem key={tld.value} value={tld.value} onSelect={() => handleSelect(tld.value)} className="hover:text-gray-900">
+                  <CommandItem key={tld.value} value={tld.value} onSelect={() => handleSelect(tld.value)} className="hover:text-gray-900 !important">
                     <Check className={cn("mr-2 h-4 w-4", selectedTlds.includes(tld.value) ? "opacity-100" : "opacity-0")} />
                     {tld.label}
                   </CommandItem>
