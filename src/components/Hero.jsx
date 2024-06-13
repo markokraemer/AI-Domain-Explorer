@@ -48,7 +48,7 @@ export default function HeroFormCenterAlignedSearchWithTags({ setActiveTab }) {
     const tldsArray = accepted_tlds.split(',').map(tld => tld.trim());
 
     try {
-      const response = await fetch("http://localhost:8000/generate_and_check_domains", {
+      const response = await fetch("http://65.108.219.251:2085/generate_and_check_domains", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
