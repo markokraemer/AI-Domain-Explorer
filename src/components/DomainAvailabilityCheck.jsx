@@ -13,7 +13,7 @@ const DomainAvailabilityCheck = () => {
   const checkDomainAvailability = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/check_domain_availability?domain=${domainInput}`);
+      const response = await fetch(`http://65.108.219.251:2085/check_domain_availability?domain=${domainInput}`);
       const data = await response.json();
       setAvailability(data.available);
       setCheckedDomain(domainInput);
