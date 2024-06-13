@@ -4,78 +4,89 @@ import { useToast } from "@/components/ui/use-toast";
 import { TldFilter } from "@/components/TldFilter";
 import LengthFilter from "@/components/LengthFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { prices } from "@/components/domain-price-data";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
+import HeroFormCenterAlignedSearchWithTags from './Hero'; // Ensure the path is correct
 
 export default function Component() {
+  const [activeTab, setActiveTab] = useState("explore");
+
   return (
     <div>
-      <DomainTabs />
+      <HeroFormCenterAlignedSearchWithTags setActiveTab={setActiveTab} />
+      <DomainTabs activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }
 
-function DomainTabs() {
+function DomainTabs({ activeTab, setActiveTab }) {
   const [domains, setDomains] = useState([]);
   const [filteredDomains, setFilteredDomains] = useState([]);
   const [tldFilter, setTldFilter] = useState("");
   const [lengthFilter, setLengthFilter] = useState({ operator: ">", value: 0 });
   const [selectedTlds, setSelectedTlds] = useState([]);
   const [favoriteDomains, setFavoriteDomains] = useState([]);
+  const [previousSearchDomains, setPreviousSearchDomains] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const prices = {
-    ".com": "$12.99/year",
-    ".io": "$39.99/year",
-    ".org": "$9.99/year",
-    ".net": "$10.99/year",
-    ".ai": "$55.00/year",
-    ".tv": "$45.00/year",
-    ".co": "$29.99/year",
-    ".biz": "$8.99/year",
-    ".tech": "$49.99/year",
-    ".app": "$14.99/year",
-  };
 
-  const fetchDomains = (url) => {
-    fetch(url)
-      .then((response) => response.json())
-      .then((data) => {
+  const fetchDomains = async (url, setDomainsCallback) => {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
         const formattedDomains = data.domains.map((item) => {
           const [domainText, domain] = item.domain.split(".");
           return { domainText, domain: `.${domain}` };
         });
-        setDomains(formattedDomains);
-        setFilteredDomains(formattedDomains);
+        setDomainsCallback(formattedDomains);
         setTotalPages(data.pagination.total_pages);
-      })
-      .catch((error) => console.error("Error fetching domains:", error));
+      } else {
+        throw new Error("Failed to fetch domains");
+      }
+    } catch (error) {
+      console.error("Failed to fetch domains", error);
+    }
   };
 
   useEffect(() => {
-    fetchDomains(`http://127.0.0.1:8000/available_domains?page=${currentPage}`);
-  }, [currentPage]);
+    if (activeTab === "explore") {
+      fetchDomains(`http://127.0.0.1:8000/available_domains?page=${currentPage}`, setDomains);
+    } else if (activeTab === "previous") {
+      const searchRequestId = localStorage.getItem("search_request_id");
+      fetchDomains(`http://127.0.0.1:8000/available_domains?search_request_id=${searchRequestId}&page=${currentPage}`, setPreviousSearchDomains);
+    } else if (activeTab === "favorites") {
+      const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+      const favoriteDomains = favorites.map(fav => {
+        const [domainText, domain] = fav.split(".");
+        return { domainText, domain: `.${domain}` };
+      });
+      setFavoriteDomains(favoriteDomains);
+    }
+  }, [currentPage, activeTab]);
 
   useEffect(() => {
     filterDomains();
-  }, [tldFilter, lengthFilter, domains]);
+  }, [tldFilter, lengthFilter, domains, previousSearchDomains, favoriteDomains]);
 
   useEffect(() => {
     setTldFilter(selectedTlds.join(","));
   }, [selectedTlds]);
 
-  useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    const favoriteDomains = domains.filter(domain => favorites.includes(`${domain.domainText}${domain.domain}`));
-    setFavoriteDomains(favoriteDomains);
-  }, [domains]);
-
   const filterDomains = () => {
-    let filtered = domains;
+    let filtered = [];
+    if (activeTab === "explore") {
+      filtered = domains;
+    } else if (activeTab === "previous") {
+      filtered = previousSearchDomains;
+    } else if (activeTab === "favorites") {
+      filtered = favoriteDomains;
+    }
 
     if (selectedTlds.length > 0) {
       filtered = filtered.filter((domain) => selectedTlds.some(tld => domain.domain.includes(tld)));
@@ -107,10 +118,10 @@ function DomainTabs() {
       { bgColor: "#E2E8F0", textColor: "#1E40AF", domainBGColor: "#1E40AF" },
       { bgColor: "#FEF3C7", textColor: "#D97706", domainBGColor: "#D97706" },
       { bgColor: "#FEE2E2", textColor: "#DC2626", domainBGColor: "#DC2626" },
-      { bgColor: "#111827", textColor: "white", domainBGColor: "#F3F4F6" },
-      { bgColor: "#4B5563", textColor: "white", domainBGColor: "#D1D5DB" },
+      { bgColor: "#111827", textColor: "white", domainBGColor: "#2F4163" },
+      { bgColor: "#4B5563", textColor: "white", domainBGColor: "#A1AFC2" },
       { bgColor: "#F1F5F9", textColor: "#1E293B", domainBGColor: "#1E293B" },
-      { bgColor: "#60A5FA", textColor: "white", domainBGColor: "#BFDBFE" },
+      { bgColor: "#60A5FA", textColor: "white", domainBGColor: "black" },
       { bgColor: "#1E3A8A", textColor: "white", domainBGColor: "#93C5FD" },
       { bgColor: "#FFEDD5", textColor: "#EA580C", domainBGColor: "#EA580C" },
       { bgColor: "#D1FAE5", textColor: "#059669", domainBGColor: "#059669" },
@@ -119,8 +130,6 @@ function DomainTabs() {
       { bgColor: "#FFF7ED", textColor: "#EA580C", domainBGColor: "#EA580C" },
       { bgColor: "#FEE2E2", textColor: "#B91C1C", domainBGColor: "#B91C1C" },
       { bgColor: "#F3F4F6", textColor: "#1F2937", domainBGColor: "#1F2937" },
-      { bgColor: "#E5E7EB", textColor: "#374151", domainBGColor: "#374151" },
-      { bgColor: "#D1D5DB", textColor: "#4B5563", domainBGColor: "#4B5563" },
       { bgColor: "#EDE9FE", textColor: "#5B21B6", domainBGColor: "#5B21B6" },
       { bgColor: "#FEF9C3", textColor: "#CA8A04", domainBGColor: "#CA8A04" },
       { bgColor: "#FDF2F8", textColor: "#DB2777", domainBGColor: "#DB2777" },
@@ -132,20 +141,16 @@ function DomainTabs() {
   };
 
   const handleTabChange = (value) => {
-    if (value === "previous") {
-      const searchRequestId = localStorage.getItem("search_request_id");
-      fetchDomains(`http://127.0.0.1:8000/available_domains?search_request_id=${searchRequestId}&page=${currentPage}`);
-    } else {
-      fetchDomains(`http://127.0.0.1:8000/available_domains?page=${currentPage}`);
-    }
+    setActiveTab(value);
+    setCurrentPage(1); // Reset to first page on tab change
   };
 
   return (
-    <Tabs defaultValue="explore" onValueChange={handleTabChange}>
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
       <div className="flex flex-col md:flex-row justify-between items-center">
         <TabsList>
           <TabsTrigger value="explore">Explore</TabsTrigger>
-          <TabsTrigger value="previous">Your previous search</TabsTrigger>
+          <TabsTrigger value="previous">Search results</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
         </TabsList>
         <div className="filters flex space-x-4 mt-4 md:mt-0">
@@ -157,15 +162,15 @@ function DomainTabs() {
       </div>
       <TabsContent value="explore">
         <DomainList domains={filteredDomains} prices={prices} generateColorCombo={generateColorCombo} />
-        <div className="mt-6">
+        <div className="mt-12 flex justify-center">
           <Pagination>
-            <PaginationContent>
+            <PaginationContent className="flex flex-wrap justify-center space-x-2">
               {Array.from({ length: totalPages }, (_, index) => (
-                <PaginationItem key={index}>
+                <PaginationItem key={index} className="flex-shrink-0">
                   <PaginationLink 
                     href="#" 
                     onClick={() => setCurrentPage(index + 1)}
-                    className={currentPage === index + 1 ? "active" : ""}
+                    className={`px-2 py-1 rounded ${currentPage === index + 1 ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
                   >
                     {index + 1}
                   </PaginationLink>
@@ -179,7 +184,7 @@ function DomainTabs() {
         <DomainList domains={filteredDomains} prices={prices} generateColorCombo={generateColorCombo} />
       </TabsContent>
       <TabsContent value="favorites">
-        <DomainList domains={favoriteDomains} prices={prices} generateColorCombo={generateColorCombo} />
+        <DomainList domains={filteredDomains} prices={prices} generateColorCombo={generateColorCombo} />
       </TabsContent>
     </Tabs>
   );
@@ -211,6 +216,11 @@ function CardComponent({ bgColor, textColor, domainText, domainBGColor, domain, 
     return favorites.includes(`${domainText}${domain}`);
   });
   const { toast } = useToast();
+
+  useEffect(() => {
+    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+    setIsFavorite(favorites.includes(`${domainText}${domain}`));
+  }, [domainText, domain]);
 
   const handleFavoriteClick = () => {
     const favorites = JSON.parse(localStorage.getItem("favorites")) || [];

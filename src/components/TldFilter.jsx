@@ -5,19 +5,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { prices } from "@/components/domain-price-data";
 
-const tlds = [
-  { value: ".com", label: ".com" },
-  { value: ".io", label: ".io" },
-  { value: ".org", label: ".org" },
-  { value: ".net", label: ".net" },
-  { value: ".ai", label: ".ai" },
-  { value: ".tv", label: ".tv" },
-  { value: ".co", label: ".co" },
-  { value: ".biz", label: ".biz" },
-  { value: ".tech", label: ".tech" },
-  { value: ".app", label: ".app" },
-];
+const tlds = Object.keys(prices).map(tld => ({ value: tld, label: tld }));
 
 export function TldFilter({ selectedTlds, setSelectedTlds }) {
   const [open, setOpen] = React.useState(false);
@@ -49,7 +39,7 @@ export function TldFilter({ selectedTlds, setSelectedTlds }) {
               <CommandEmpty>No TLD found.</CommandEmpty>
               <CommandGroup>
                 {tlds.map((tld) => (
-                  <CommandItem key={tld.value} value={tld.value} onSelect={() => handleSelect(tld.value)}>
+                  <CommandItem key={tld.value} value={tld.value} onSelect={() => handleSelect(tld.value)} className="hover:text-gray-900">
                     <Check className={cn("mr-2 h-4 w-4", selectedTlds.includes(tld.value) ? "opacity-100" : "opacity-0")} />
                     {tld.label}
                   </CommandItem>

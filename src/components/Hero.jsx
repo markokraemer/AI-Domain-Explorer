@@ -1,86 +1,201 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SearchIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useToast, ToastAction } from "@/components/ui/use-toast";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { motion } from "framer-motion";
+import { useEffect } from "react";
 
-export default function HeroFormCenterAlignedSearchWithTags() {
+const formSchema = z.object({
+  request: z.string().min(1).optional(),
+  similar_to: z.string().optional(),
+  word_length: z.preprocess((val) => val === "" ? undefined : Number(val), z.number().min(1).optional()),
+  accepted_tlds: z.string().optional(),
+});
+
+export default function HeroFormCenterAlignedSearchWithTags({ setActiveTab }) {
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      request: "",
+      similar_to: "",
+      word_length: 5,
+      accepted_tlds: ".com, .ai, .io",
+    },
+  });
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (values) => {
     setLoading(true);
-    const request = event.target.elements["domain-search-query"].value;
-
-    const response = await fetch("http://localhost:8000/generate_and_check_domains", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ request }),
+    toast({
+      title: "Domain generation started",
+      description: "It can take up to 30 seconds to generate the domains.",
     });
+    const { request, similar_to, word_length, accepted_tlds } = values;
+    const tldsArray = accepted_tlds.split(',').map(tld => tld.trim());
 
-    if (response.ok) {
-      const data = await response.json();
-      setDomains(data.domains);
-      localStorage.setItem("search_request_id", data.search_request_id); // Store search_request_id in local storage
-    } else {
-      console.error("Failed to fetch domains");
+    try {
+      const response = await fetch("http://localhost:8000/generate_and_check_domains", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ request, similar_to, word_length, accepted_tlds: tldsArray }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.domains.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "No available domains found",
+            description: "We generated 100 domains for your search query, but all were unavailable. Please adjust your search query.",
+          });
+        } else {
+          setDomains(data.domains);
+          localStorage.setItem("search_request_id", data.search_request_id);
+
+          // Temporarily switch tabs to refresh data (data fetching like a Pro)
+          setActiveTab("explore");
+          setTimeout(() => {
+            setActiveTab("previous");
+          }, 100); // Small delay to ensure the tab switch is registered
+
+          toast({
+            title: `${data.domains_found} Domains found`,
+            description: `Added to your search results list.`,
+          });
+        }
+      } else {
+        throw new Error("Failed to fetch domains");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while fetching domains. Please try again.",
+      });
+      console.error("Failed to fetch domains", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const options = ["Your Startup Name", "A Dope Domain", "A Domain To Resell For 10b$"];
+  const [currentOption, setCurrentOption] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentOption((prevOption) => (prevOption + 1) % options.length);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
-      {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="container py-24 lg:py-32">
           <div className="text-center">
-            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-              Explore Domains with AI
+            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl text-gray-900">
+              AI To Find <motion.span
+                key={options[currentOption]}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="underline"
+              >
+                {options[currentOption]}
+              </motion.span> 
             </h1>
             <p className="mt-3 text-xl text-muted-foreground">
-              1. We find cool words 2. Check for available domains 3. Show them to you
+              1. Input your search query 2. We find cool words 3. Check for available domains 4. Recommend you the best
             </p>
             <div className="mt-7 sm:mt-12 mx-auto max-w-xl relative">
-              {/* Form */}
-              <form onSubmit={handleSubmit}>
-                <div className="relative z-10 flex space-x-3 p-3 border bg-background rounded-lg shadow-lg">
-                  <div className="flex-[1_0_0%]">
-                    <Label htmlFor="domain-search-query" className="sr-only">
-                      Generate domains based on a description of what you´re looking for
-                    </Label>
-                    <Input
-                      name="domain-search-query"
-                      className="h-full"
-                      id="domain-search-query"
-                      placeholder="Generate domains based on a description of what you´re looking for..."
-                      disabled={loading}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <div className="relative z-10 flex flex-col space-y-3 p-3 border bg-background text-gray-900 rounded-lg shadow-lg">
+                    <FormField
+                      control={form.control}
+                      name="request"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input placeholder="Generate domains based on a description..." {...field} disabled={loading} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div className="flex-[0_0_auto]">
-                    <Button size={"icon"} disabled={loading}>
-                      {loading ? <Spinner size="small" className="text-white" /> : <SearchIcon />}
+                    <div className="flex flex-col space-y-3 sm:flex-row sm:space-x-3 text-gray-900 sm:space-y-0">
+                      <FormField
+                        control={form.control}
+                        name="similar_to"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input placeholder="Similar to (Google, Trello, Asana)" {...field} disabled={loading} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="word_length"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input type="number" placeholder="Word Length (Chars)" {...field} disabled={loading} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="accepted_tlds"
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormControl>
+                              <Input placeholder="TLDs (.com, .ai, .io)" {...field} disabled={loading} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      size="lg" 
+                      className="w-full flex items-center justify-center bg-gray-900 space-x-2" 
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Spinner size="small" className="text-white" />
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <SearchIcon />
+                          <span className="font-semibold">Search</span>
+                        </div>
+                      )}
                     </Button>
                   </div>
-                </div>
-              </form>
-              {/* End Form */}
-              {/* Display Domains */}
-              {/* {domains.length > 0 && (
-                <div className="mt-5">
-                  <h2 className="text-2xl font-bold">Available Domains:</h2>
-                  <ul>
-                    {domains.map((domain, index) => (
-                      <li key={index}>{domain.domain}</li>
-                    ))}
-                  </ul>
-                </div>
-              )} */}
-              {/* End Display Domains */}
-              {/* SVG Elements */}
+                </form>
+              </Form>
               <div className="hidden md:block absolute top-0 end-0 -translate-y-12 translate-x-20">
                 <svg
                   className="w-16 h-auto text-orange-500"
@@ -127,54 +242,10 @@ export default function HeroFormCenterAlignedSearchWithTags() {
                   />
                 </svg>
               </div>
-              {/* End SVG Element */}
             </div>
-            {/* <div className="mt-10 sm:mt-20 flex flex-wrap gap-2 justify-center">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="all-styles" />
-                <Label htmlFor="all-styles">All styles</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brandable-names" />
-                <Label htmlFor="brandable-names">Brandable names</Label>
-                <span className="text-sm text-muted-foreground">like Google and Rolex</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="evocative" />
-                <Label htmlFor="evocative">Evocative</Label>
-                <span className="text-sm text-muted-foreground">like RedBull and Forever21</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="short-phrase" />
-                <Label htmlFor="short-phrase">Short phrase</Label>
-                <span className="text-sm text-muted-foreground">like Dollar shave club</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="compound-words" />
-                <Label htmlFor="compound-words">Compound words</Label>
-                <span className="text-sm text-muted-foreground">like FedEx and Microsoft</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="alternate-spelling" />
-                <Label htmlFor="alternate-spelling">Alternate spelling</Label>
-                <span className="text-sm text-muted-foreground">like Lyft and Fiverr</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="non-english-words" />
-                <Label htmlFor="non-english-words">Non-English words</Label>
-                <span className="text-sm text-muted-foreground">like Toyota and Audi</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="real-words" />
-                <Label htmlFor="real-words">Real words</Label>
-                <span className="text-sm text-muted-foreground">like Apple and Amazon</span>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
-      {/* End Hero */}
     </>
   );
 }
-

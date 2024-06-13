@@ -8,7 +8,6 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-grow container mx-auto px-4">
-        <HeroFormCenterAlignedSearchWithTags />
         <DomainCards />
       </div>
       <div className="pt-12"> 
