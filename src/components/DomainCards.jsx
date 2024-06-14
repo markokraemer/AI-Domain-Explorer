@@ -56,10 +56,10 @@ function DomainTabs({ activeTab, setActiveTab }) {
 
   useEffect(() => {
     if (activeTab === "explore") {
-      fetchDomains(`http://65.108.219.251:2085/available_domains?page=${currentPage}`, setDomains);
+      fetchDomains(`https://be.seeking.domains/available_domains?page=${currentPage}`, setDomains);
     } else if (activeTab === "previous") {
       const searchRequestId = localStorage.getItem("search_request_id");
-      fetchDomains(`http://65.108.219.251:2085/available_domains?search_request_id=${searchRequestId}&page=${currentPage}`, setPreviousSearchDomains);
+      fetchDomains(`https://be.seeking.domains/available_domains?search_request_id=${searchRequestId}&page=${currentPage}`, setPreviousSearchDomains);
     } else if (activeTab === "favorites") {
       const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
       const favoriteDomains = favorites.map(fav => {

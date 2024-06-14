@@ -4,9 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <title>AI Domain Finder</title>
         <meta name="description" content="Find the perfect startup name and domain with AI." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:title" content="AI Domain Finder" />
         <meta property="og:description" content="Find the perfect startup name and domain with AI." />
         <meta property="og:image" content="https://uploads-ssl.webflow.com/65d92278c643d1d4d3f5a32d/666b7bf287a3ea798ec9d436_Meta-SeekingDomain.png" />
@@ -24,3 +22,4 @@ export default function Document() {
     </Html>
   );
 }
+
